@@ -162,3 +162,56 @@ def load_grid(dir_path, grid_ra, grid_dec, freq_slice, include_weights=False):
         return cube, freq, vel, grid_wcs, new_header, wgts_cube, new_wgts_header
     else:
         return cube, freq, vel, grid_wcs, new_header
+
+def load_cont_grid(dir_path, grid_ra, grid_dec, freq_slice, include_weights=False):
+    '''
+    This function loads an ALFALFA continuum grid and applies corrections to
+    the header keywords and an approximate fix for the world coordinate system.
+    The weights cubes is also loaded if requested.
+
+    INPUTS:
+    dir_path: (String) Path to the directory containing the data.
+    grid_ra: (String) Right Ascension of the grid to be loaded, e.g., "1044".
+    grid_dec: (String) Declination of the grid to be loaded, e.g., "13".
+    freq_slice: (String) Frequency slice of the ALFALFA data, e.g., "a", "b", "c", or "d".
+    include_weights: (Bool) Return weights cube as well as data (optional).
+
+    OUTPUTS:
+    grid: (Array) Continuum grid.
+    wcs: (WCS Object) World Coordinate System object for the grid (2-dimensional).
+    header: (Header Object) FITS header of the cube.
+    (Optional) weights_cube: (Array) Weights cube.
+    (Optional) weights_header: (Header Object) FITS header of the weights cube.
+    '''
+
+    grid_filename = f'{dir_path}{grid_ra}+{grid_dec}{freq_slice}_continuum.fits'
+
+    #Open the fits file
+    hdu = fits.open(grid_filename)
+
+    #Extract the data from fits file
+    cont = hdu[0].data
+
+    #Extract and correct header
+    orig_header = hdu[0].header
+    new_header = fits_header_clean(orig_header, grid_ra, grid_dec)
+
+    #Start by building frequency and velocity arrays
+    grid_wcs = WCS(new_header)
+    
+    if include_weights:
+        wgts_filename = f'{dir_path}{grid_ra}+{grid_dec}{freq_slice}_continuumweights.fits'
+        
+        #Open the fits file
+        wgts_hdu = fits.open(wgts_filename)
+    
+        #Extract the data from fits file
+        wgts_cube = wgts_hdu[0].data
+
+        #Extract and correct header
+        orig_wgts_header = wgts_hdu[0].header
+        new_wgts_header = fits_header_clean(orig_wgts_header, grid_ra, grid_dec)
+
+        return cont, grid_wcs, new_header, wgts_cube, new_wgts_header
+    else:
+        return cont, grid_wcs, new_header

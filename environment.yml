@@ -13,4 +13,5 @@ dependencies:
     - photutils=2.2
     - regions=0.10
     - jupyter
+    - jupytext
     - pip
