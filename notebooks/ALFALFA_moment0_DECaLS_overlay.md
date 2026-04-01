@@ -29,7 +29,7 @@ from PIL import Image
 scripts_path = os.path.abspath("../scripts")
 sys.path.append(scripts_path)
 
-from load_grid import load_grid
+from load_grid import load_grid, load_cont_grid
 ```
 
 This notebook takes an ALFALFA grid file, makes a quick moment zero map, downloads a DECaLS image for the corresponding sky area, and finally overlays HI contours on the image.
@@ -221,3 +221,42 @@ ax.contour(mom0_Jykms,colors=['w','yellow','orange','r','magenta'],levels=contou
 plt.xlabel('RA')
 plt.ylabel('Dec')
 ```
+
+You can also load and display the ALFALFA continuum grids in a similar way, although, of course, it isn't necessary to construct the moment zero map for the continuum.
+
+```python
+#Define the grid you are using
+grid_ra = '1044'
+grid_dec = '13'
+freq_slice = 'a'
+
+#Use the load_cont_grid function to load the continuum map and WCS
+cont, grid_wcs, header = load_cont_grid(data_path,grid_ra,grid_dec,freq_slice)
+```
+
+```python
+#Average the two polarizations
+cont = numpy.mean(cont,axis=0)
+```
+
+```python
+#Now make conthe overlay
+
+#Open the DECaLS jpeg that we downloaded
+DECaLS_jpeg = Image.open(f'{grid_ra}+{grid_dec}_DECaLS.jpeg')
+
+#Set the contour levels
+min_contour = 20 #Jy km/s / beam
+contour_levels = min_contour*numpy.array([1,2,4,8,16])
+
+#Make the plot
+plt.figure(figsize=[8,8])
+ax = plt.subplot(111,projection=DECaLS_projection)
+ax.imshow(DECaLS_jpeg)
+ax.contour(cont,colors=['w','yellow','orange','r','magenta'],levels=contour_levels,linewidths=2,
+           transform=ax.get_transform(grid_wcs.celestial))
+plt.xlabel('RA')
+plt.ylabel('Dec')
+```
+
+Note that although there are four continuum grids at each position (a, b, c, d) to match the four velocity ranges of the line cubes, the data in these four continuum files are identical, that is, each contains the continuum emission for the entire bandpass.
